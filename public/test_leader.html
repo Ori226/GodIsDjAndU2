@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type='text/javascript' src='tubeplayer.js'></script>
+    <script type='text/javascript' src='jquery.tubular.1.0.js'></script>
+    <script type='text/javascript' src='jquery.tube.js'></script>
+
+    <script>
+
+
+
+        function my_log(str)
+        {
+            console.log(str);
+        }
+        var user_id = "David";
+
+        function updateServer(user_id, state){
+            my_log(user_id);
+            $.post( 'http://127.0.0.1:3000/updateLeaderStatus/',{ userId: user_id, player_state:state },
+                function(data)
+                {
+                    //player.loadVideoById(youtube_parser(data));
+                    console.log(data);
+                }
+            );
+        }
+
+        function updatePlaylistServer(user_id, playlist){
+            $.post( 'http://127.0.0.1:3000/updateLeaderPlaylist/',{ userId: user_id, playlist: playlist}, function(data) {
+
+                //player.loadVideoById(youtube_parser(data));
+                console.log(data);
+            });
+        }
+
+
+        function getPlaylistFromServer(user_id){
+            my_log(user_id);
+            $.get( 'http://127.0.0.1:3000/getLeaderPlaylist/',{ userId: user_id}, function(data) {
+
+                //player.loadVideoById(youtube_parser(data));
+
+                $('#Select1').children().remove();
+                for (i = 0; i < data.length; i++) {
+                    $('#Select1').append('<option value='+i+'>'+data[i]+'</option>'); // adds item 5 at the end
+                }
+
+                console.log(data);
+                return data;
+            });
+        }
+
+        var player;
+
+
+        function onPause(event) {
+            alert('dsds');
+        }
+        var adding_counter = 0;
+        var player_index = 0;
+
+        $(document).ready(function(){
+
+            $("#AddYoutubeBtn").click(function(){
+                $('#Select1').append('<option value='+adding_counter+'>'+$('#video_url_id').val()+'</option>'); // adds item 5 at the end
+                adding_counter = adding_counter +1;
+                SavePlaylistToServer();
+            });
+
+            $("#NextVideoBtn").click(function(){
+                console.log("pressed");
+                console.log("pressed");
+                $('#Select1').val(player_index) ;//.append('<option value="5">'+$('#video_url_id').val()+'</option>'); // adds item 5 at the end
+                player_index = (player_index +1) % $('#Select1 option').length;
+                console.log($('#Select1 option').length);
+                console.log($('#Select1 option:selected').text());
+                updateServer("david",$('#Select1 option:selected').text());
+                //send the change to the server
+                //updateServer()
+
+            });
+
+            $("#RemoveYoutubeBtn").click(function(){
+                var x = document.getElementById("Select1");
+                x.remove(x.selectedIndex);
+            });
+
+            $("#UploadPlaylistBtn").click(function(){
+                my_log("start"+ user_id);
+                var playlist = SavePlaylistToServer();
+                updatePlaylistServer(user_id, playlist);
+                my_log("end"+ user_id + "_"+ playlist);
+            });
+
+
+            $("#GetPlaylistBtn").click(function(){
+                my_log("start"+ user_id);
+
+                getPlaylistFromServer(user_id);
+
+
+
+
+
+                my_log("end"+ user_id);
+            });
+
+
+
+
+            $('#Select1').change(function(){
+                var selected_item = $('#Select1 option:selected').text();
+                console.log("changed:"+ selected_item);
+                updateServer("david",selected_item);
+                player.loadVideoById(youtube_parser(selected_item));
+            });
+
+
+            function SavePlaylistToServer()
+            {
+                all_list = []
+                $("#Select1 option").each(function()
+                {
+                    all_list.push($(this).text());
+                    // Add $(this).val() to your list
+                });
+                return all_list;
+            }
+        });
+    </script>
+</head>
+<body>
+<!-- 1. The <iframe> (and video player) will replace this <div> tag. -->
+
+
+<div id="button_wrapper">
+    <button id="AddYoutubeBtn">Add youtube</button>
+    <button id="RemoveYoutubeBtn">Remove selected youtube</button>
+    <button id="NextVideoBtn">NextVideo</button>
+    <button id="UploadPlaylistBtn">UploadPlaylist</button>
+    <button id="GetPlaylistBtn">GetPlaylist</button>
+    <button onclick="getFullPlayerState()">Just Click</button>
+
+
+    <input type="text" name="video_url" id="video_url_id"/>
+    <button>Remove youtube</button>
+</div>
+
+
+<select id="Select1"  size="8"  >
+
+</select>
+
+<div id="player"></div>
+
+<script>
+    // 2. This code loads the IFrame Player API code asynchronously.
+    var tag = document.createElement('script');
+
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    // 3. This function creates an <iframe> (and YouTube player)
+    //    after the API code downloads.
+    var player;
+    function onYouTubeIframeAPIReady() {
+
+        console.log('d2323');
+
+        player = new YT.Player('player', {
+            height: '390',
+            width: '640',
+            //videoId: 'C2sFSbn7ZIw',
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            }
+        });
+        //player.loadVideoByUrl({'mediaContentUrl':'https://youtu.be/C2sFSbn7ZIw'});
+    }
+
+    // 4. The API will call this function when the video player is ready.
+    function onPlayerReady(event) {
+        event.target.setVolume(0);
+        event.target.playVideo();
+    }
+
+    // 5. The API calls this function when the player's state changes.
+    //    The function indicates that when playing a video (state=1),
+    //    the player should play for six seconds and then stop.
+    var done = false;
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING && !done) {
+            //setTimeout(stopVideo, 2000);
+            done = true;
+        }
+        else if (event.data == YT.PlayerState.ENDED ) {
+            my_log("ended");
+        }
+        /*
+         YT.PlayerState.ENDED
+         YT.PlayerState.PLAYING
+         YT.PlayerState.PAUSED
+         YT.PlayerState.BUFFERING
+         YT.PlayerState.CUED
+        */
+        else if (event.data == YT.PlayerState.PAUSED) {
+            my_log("pause");
+        }
+    }
+
+    function youtube_parser(url){
+        var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/;
+        var match = url.match(regExp);
+        if (match&&match[7].length==11){
+            return match[7];
+        }else{
+            alert("Url incorrecta");
+        }
+    }
+
+
+    function stopVideo() {
+        var url_string = 'https://youtu.be/C2sFSbn7ZIw';
+        console.log(youtube_parser(url_string))
+
+        player.stopVideo();
+        player.loadVideoById(youtube_parser('https://youtu.be/7ZQWjKMQsQw'));
+
+
+    }
+</script>
+
+
+
+<div id='youtube-player-container'> </div>
+
+
+
+
+
+
+<script>
+    console.log('load!!!');
+    var w;
+
+    /*
+     -1 – unstarted
+     0 – ended
+     1 – playing
+     2 – paused
+     3 – buffering
+     5 – video cued
+     */
+
+
+    function getFullPlayerState()
+    {
+        var player_state = {
+            state: player.getPlayerState(),
+            time: player.getCurrentTime(),
+            url: player.getVideoUrl()
+        };
+        console.log(player_state);
+        console.log(user_id);
+
+        updateServer(user_id, player_state)
+
+    }
+    function startWorker() {
+
+        console.log("start working");
+        setInterval(getFullPlayerState,1000);
+
+
+    }
+
+    startWorker();
+</script>
+
+</body>
+
+</html>
